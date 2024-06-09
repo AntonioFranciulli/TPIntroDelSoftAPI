@@ -5,15 +5,40 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
 app = Flask(__name__)
-engine = create_engine("mysql+mysqlconnector://{username}:{password}@{hostname}/{databasename}")#cambiar url para conectar a su base de datos local
+
+def set_connection():
+
+    engine = create_engine("mysql+mysqlconnector://root@localhost/database")
+
+    connection = engine.connect()
+    return connection
+
+def show_records(connection):
+    query = "SELECT * FROM refugios"
+    try:
+        result = connection.execute(text(query))
+        connection.commit()
+    except SQLAlchemy as err:
+        print("error",str(err.__cause__))
+        
 
 @app.route("/")
 def home():
-    return "OK"
+    return "Ruta creada"
+
+
+
+
+#@app.route("/agregar_voluntario/<cuil>") , methods=['POST']
+
+
+#@app.route("/...") , methods=['GET']"""
+
+#@app.route("/eliminar_refugio/id_refugio") , methods=['DELETE']
 
 @app.route("/eliminar_voluntario/<cuil>", methods=['DELETE'])
 def eliminar_voluntario(cuil):
-    conn = engine.connect()
+    conn = set_connection()
     query = f"DELETE FROM voluntarios WHERE cuil_voluntario = {cuil};"
     validation_query = f"SELECT FROM voluntarios WHERE cuil_voluntario = {cuil}"
     try:
