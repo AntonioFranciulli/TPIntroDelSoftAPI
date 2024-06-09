@@ -6,6 +6,7 @@ pip install pipenv
 mkdir .venv
 pipenv install flask
 pipenv install flask_sqlalchemy
+pip install requests
 pipenv install mysql-connector-python
 export FLASK_DEBUG=1
 pipenv run flask run
