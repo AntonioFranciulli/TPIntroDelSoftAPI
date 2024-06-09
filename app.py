@@ -26,7 +26,7 @@ def home():
     return "Ruta creada"
 
 @app.route('/refugios', methods=['GET'])
-def refugios():
+def obtener_refugios():
     conn = engine.connect()
     query = "SELECT * FROM refugios;"
     
