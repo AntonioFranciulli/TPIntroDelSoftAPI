@@ -26,13 +26,7 @@ def show_records(connection):
 def home():
     return "Ruta creada"
 
-@app.route("/crear_voluntario" , methods = ['GET'])
-def crear_voluntario():
-    conn = set_connection()
-    site = show_records(conn)
-    data= []
-    for row in site:
-        result = {}
+
 
 
 #@app.route("/agregar_voluntario/<cuil>") , methods=['POST']
