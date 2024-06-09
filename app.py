@@ -8,8 +8,7 @@ app = Flask(__name__)
 
 def set_connection():
 
-    engine = create_engine("mysql+mysqlconnector://root@localhost/database")
-
+    engine = create_engine("mysql+mysqlconnector://root@localhost/CalleSolidaria")
     connection = engine.connect()
     return connection
 
@@ -28,6 +27,20 @@ def home():
 
 
 
+@app.route('/crear_refugio', methods = ['POST'])
+def crearRefugio():
+    conn= set_connection()
+    newShelter = request.get_json()
+    query = f"""INSERT INTO refugios(direccion,descripcion,tipo_refugio,telefono,link_foto)
+                VALUES '{newShelter["direccion"]},'{newShelter["descripcion"]},'{newShelter["tipo_refugio"]},'{newShelter["telefono"]},'{newShelter["link_foto"]}
+            """
+    try:
+        result= conn.excecute(text(query))
+        conn.commit()
+    except SQLAlchemyError as err:
+        print("error",err.__cause__)
+        return jsonify({'message': 'Se ha producido un error' + str(err.__cause__)})
+    return jsonify({'message': 'Se ha agregado correctamente' + query}), 201
 
 #@app.route("/agregar_voluntario/<cuil>") , methods=['POST']
 
@@ -40,7 +53,7 @@ def home():
 def eliminar_voluntario(cuil):
     conn = set_connection()
     query = f"DELETE FROM voluntarios WHERE cuil_voluntario = {cuil};"
-    validation_query = f"SELECT FROM voluntarios WHERE cuil_voluntario = {cuil}"
+    validation_query = f"DELETE FROM voluntarios WHERE cuil_voluntario = {cuil}"
     try:
         result = conn.execute(text(validation_query))
         if result.rowcount != 0:
