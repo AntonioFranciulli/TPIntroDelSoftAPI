@@ -3,8 +3,10 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import create_engine
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app, resources={r'*': {'origins': 'http://127.0.0.1:5000'}})
 
 def set_connection():
 
@@ -76,5 +78,3 @@ def eliminar_voluntario(cuil):
     except SQLAlchemyError as err:
             return jsonify({'message' : 'Se ha producido un error' + str(err.__cause__)})
 
-if __name__ == '__main__': 
-   app.run("127.0.0.1",port = "5050", debug = True)
