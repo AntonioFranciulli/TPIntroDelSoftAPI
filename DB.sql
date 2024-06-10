@@ -5,6 +5,7 @@ CREATE TABLE refugios (
     descripcion VARCHAR(50)DEFAULT NULL,
     tipo_refugio VARCHAR(50),
     telefono VARCHAR(20),
+    link_foto VARCHAR(255) DEFAULT NULL,
     lista_voluntarios VARCHAR(2000)DEFAULT NULL,
     PRIMARY KEY(ID_refugio)
 );
