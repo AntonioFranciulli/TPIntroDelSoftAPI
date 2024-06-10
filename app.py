@@ -31,16 +31,23 @@ def home():
 def crearRefugio():
     conn= set_connection()
     newShelter = request.get_json()
-    query = f"""INSERT INTO refugios(direccion,descripcion,tipo_refugio,telefono,link_foto)
-                VALUES '{newShelter["direccion"]},'{newShelter["descripcion"]},'{newShelter["tipo_refugio"]},'{newShelter["telefono"]},'{newShelter["link_foto"]}
-            """
+    query = text("""INSERT INTO refugios(nombre_refugio, direccion, descripcion, tipo_refugio, telefono, link_foto)
+    VALUES (:nombre_refugio, :direccion, :descripcion, :tipo_refugio, :telefono, :link_foto)
+            """)
     try:
-        result= conn.excecute(text(query))
+        conn.execute(query, {
+        'nombre_refugio': newShelter["nombre_refugio"],
+        'direccion': newShelter["direccion"],
+        'descripcion': newShelter["descripcion"],
+        'tipo_refugio': newShelter["tipo_refugio"],
+        'telefono': newShelter["telefono"],
+        'link_foto': newShelter["link_foto"]
+    })
         conn.commit()
     except SQLAlchemyError as err:
         print("error",err.__cause__)
-        return jsonify({'message': 'Se ha producido un error' + str(err.__cause__)})
-    return jsonify({'message': 'Se ha agregado correctamente' + query}), 201
+        return jsonify({'message': 'Se ha producido un error: ' + str(err)}), 500
+    return jsonify({'message': 'Se ha agregado correctamente'}), 201
 
 #@app.route("/agregar_voluntario/<cuil>") , methods=['POST']
 
