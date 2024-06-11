@@ -6,7 +6,7 @@ pip install pipenv
 mkdir .venv
 pipenv install flask
 pipenv install flask_sqlalchemy
-pipen install requests
+pipenv install requests
 pipenv install mysql-connector-python
 pipenv install Flask-Cors
 export HOST="127.0.0.1"
