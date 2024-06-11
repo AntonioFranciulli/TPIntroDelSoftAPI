@@ -172,4 +172,31 @@ def modificar_usuario(id):
     except SQLAlchemyError as err:
             return jsonify({'message': f'Error al modificar el refugio: {err}'}), 500
 
-#probablemente algo tengamos que modificar de este, porque deberiamos ver cómo hacer para que no cualquiera pueda modificar la base de datos. 
+#probablemente algo tengamos que modificar de este, porque deberiamos ver cómo hacer para que no cualquiera pueda modificar la base de datos.
+
+@app.route('/modificar_voluntario/<cuil>', methods=['PATCH'])
+def modificar_voluntario(cuil):
+    conn = set_connection()
+    mod_vol = request.get_json()
+    # Los datos se tienen que mandar por el body del request
+    #No estoy seguro que sea buena práctica poder modificar el cuil si lo usamos como PK. Por las dudas lo dejo por ahora
+    query = f"""UPDATE voluntarios SET nombre = '{mod_vol['nombre']}',
+                puesto = '{mod_vol['puesto']}',
+                cuil_voluntario = '{mod_vol['cuil_voluntario']}',
+                telefono = '{mod_vol['telefono']}',
+                id_refugio = '{mod_vol['id_refugio']}'
+                WHERE cuil_voluntario = {cuil};
+            """
+    query_validation = f"SELECT * FROM voluntarios WHERE cuil_voluntario = {cuil};"
+    try:
+        val_result = conn.execute(text(query_validation))
+        if val_result.rowcount != 0:
+            conn.execute(text(query))
+            conn.commit()
+            conn.close()
+        else:
+            conn.close()
+            return jsonify({'message': "El voluntario no existe"}), 404
+    except SQLAlchemyError as err:
+        return jsonify({'message': str(err.__cause__)})
+    return jsonify({'message': 'se ha modificado correctamente' + query}), 200
