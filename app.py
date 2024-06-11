@@ -4,6 +4,7 @@ from sqlalchemy import create_engine
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from flask_cors import CORS
+import requests
 
 
 app = Flask(__name__)
