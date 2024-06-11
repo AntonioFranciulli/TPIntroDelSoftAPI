@@ -29,7 +29,7 @@ def show_records(connection):
 def home():
     return "Ruta creada"
 
-@app.route('/refugios', methods=['GET'])
+@app.route('/refugios_geojson', methods=['GET'])
 def obtener_refugios():
     conn = set_connection()
     query = "SELECT * FROM refugios;"
@@ -94,7 +94,28 @@ def obtener_refugios():
     conn.close()
     return jsonify(geojson_refugios), 200
 
-
+@app.route("/refugios", methods=['GET'])
+def mostrar_refugios():
+    conn = set_connection()
+    query = "SELECT * FROM refugios;"
+    try:
+        result = conn.execute(text(query))
+        conn.close()
+    except SQLAlchemyError as err:
+        return jsonify({'message' : 'Se ha producido un error' + str(err.__cause__)}), 500
+    data = []
+    for row in result:
+        entity={}
+        entity['id']=row.id_refugio
+        entity['nombre']=row.nombre_refugio
+        entity['descripcion']=row.descripcion
+        entity['direccion']=row.direccion
+        entity['telefono']=row.telefono
+        entity['tipo']=row.tipo_refugio
+        entity['foto']=row.link_foto
+        entity['voluntarios']=row.lista_voluntarios
+        data.append(entity)
+    return jsonify(data), 200
 
 
 @app.route('/crear_refugio', methods = ['POST'])
