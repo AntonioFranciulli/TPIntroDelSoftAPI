@@ -5,6 +5,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from flask_cors import CORS
 import requests
+import json
 
 app = Flask(__name__)
 CORS(app, resources={r'*': {'origins': 'http://127.0.0.1:5000'}})
@@ -118,7 +119,53 @@ def crearRefugio():
         return jsonify({'message': 'Se ha producido un error: ' + str(err)}), 500
     return jsonify({'message': 'Se ha agregado correctamente'}), 201
 
-#@app.route("/agregar_voluntario/<cuil>") , methods=['POST']
+@app.route("/crear_voluntario", methods=['POST'])
+def crear_voluntario():
+
+    conn = set_connection() #Set connection to db
+    volunteer = request.get_json() #Diccionario body
+
+    query = text("""INSERT INTO voluntarios(cuil_voluntario, puesto, telefono, nombre, id_refugio)
+    VALUES (:cuil_voluntario, :puesto, :telefono, :nombre, :id_refugio)
+    """) 
+    try:
+        conn.execute(query, {
+        'cuil_voluntario': volunteer["cuil_voluntario"],
+        'puesto': volunteer["puesto"],
+        'telefono': volunteer["telefono"],
+        'nombre': volunteer["nombre"],
+        'id_refugio': volunteer["id_refugio"]   
+        })
+        conn.commit() #Agregag voluntario a tabla voluntarios
+
+        query2 = text("""SELECT * FROM refugios WHERE id_refugio = :id_refugio;""") #Obtiene refugio con nombre especifico
+
+
+        refugio = conn.execute(query2,{
+            'id_refugio': volunteer["id_refugio"]
+        }).fetchone()
+
+        if refugio[7] == None:
+            lista_voluntarios = [volunteer["cuil_voluntario"]]
+        else:
+            lista_voluntarios = json.loads(refugio[7]) #Convierte "[]" => []
+            lista_voluntarios.append(volunteer["cuil_voluntario"])
+
+        lista_voluntarios = json.dumps(lista_voluntarios) #Convierte [] => "[]"
+        
+
+        query3 = text(""" UPDATE refugios SET lista_voluntarios = :lista_voluntarios
+                    WHERE id_refugio = :id_refugio;
+        """) #Update de la lista de voluntarios
+
+        conn.execute(query3,{'id_refugio': volunteer["id_refugio"],'lista_voluntarios': lista_voluntarios})
+        conn.commit()
+
+    except SQLAlchemyError as err:
+        print("error",err._cause_)
+        return jsonify({'message': 'Se ha producido un error: ' + str(err)}), 500
+    
+    return jsonify({'message': 'Se ha agregado correctamente'}), 201
 
 
 #@app.route("/...") , methods=['GET']"""
