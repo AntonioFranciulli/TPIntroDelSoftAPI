@@ -30,7 +30,7 @@ def home():
 
 @app.route('/refugios', methods=['GET'])
 def obtener_refugios():
-    conn = engine.connect()
+    conn = set_connection()
     query = "SELECT * FROM refugios;"
     
     try:
