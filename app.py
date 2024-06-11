@@ -6,7 +6,6 @@ from sqlalchemy.exc import SQLAlchemyError
 from flask_cors import CORS
 import requests
 
-
 app = Flask(__name__)
 CORS(app, resources={r'*': {'origins': 'http://127.0.0.1:5000'}})
 
@@ -57,7 +56,8 @@ def obtener_refugios():
         }
         
         # Obtengo las coordenadas segun la direccion proporcionada a traves de la api. 
-        TOKEN_ACCESO_A_API = '' #aca completar el token de acceso a mapbox
+        TOKEN_ACCESO_A_API = 'pk.eyJ1IjoiYW50b25pb2ZyYW5jaXVsbGkiLCJhIjoiY2x4N3J4a2p5MHd2ajJycG1sZmU2ZWZvcSJ9.0hdKusxNrisOijQEdlLSrg'
+
         url = f"https://api.mapbox.com/geocoding/v5/mapbox.places/{refugio['direccion']}.json?access_token={TOKEN_ACCESO_A_API}"
         response = requests.get(url)
         data = response.json() # esto devuelve un objeto JSON proporcionado por la api de mapbox al hacer nuestra consulta de las coordenadas
@@ -144,4 +144,32 @@ def eliminar_voluntario(cuil):
             return jsonify({'message' : 'cuil inexistente'})
     except SQLAlchemyError as err:
             return jsonify({'message' : 'Se ha producido un error' + str(err.__cause__)})
+#acá probé que los refugios se eliminen en base al id luego de hacer el get refugios, no sé cómo vamos a implementar el tema del token para que solamente los que crearon los refugios puedan modificarlo
+@app.route('/refugios/<id>',methods = ['PATCH'])
+def modificar_usuario(id):
+    conn = set_connection()
+    mod_refugio = request.get_json()
+    #acá los datos tienen que ser mandados por el body
+    query = query = f""" UPDATE refugios SET nombre_refugio = '{mod_refugio["nombre_refugio"]}'
+            {f", direccion = '{mod_refugio['direccion']}'"}
+            {f",descripcion = '{mod_refugio['descripcion']}'"}
+            {f",telefono = '{mod_refugio['telefono']}'"}
+            {f",link_foto = '{mod_refugio['link_foto']}'"}
+            WHERE id_refugio = {id};
+            """
 
+    query_validation = f"SELECT * FROM refugios WHERE id_refugio = {id};"
+    try:
+        val_result = conn.execute(text(query_validation))
+        if val_result.rowcount != 0:
+            result = conn.execute(text(query))
+            conn.commit()
+            conn.close()
+            return jsonify({'message':'se ha modificado correctamente' + query}),200
+        else:
+            conn.close()
+            return jsonify({'message': 'El refugio buscado no existe'}),404
+    except SQLAlchemyError as err:
+            return jsonify({'message': f'Error al modificar el refugio: {err}'}), 500
+
+#probablemente algo tengamos que modificar de este, porque deberiamos ver cómo hacer para que no cualquiera pueda modificar la base de datos. 

@@ -1,8 +1,8 @@
 CREATE TABLE refugios (
     id_refugio INT NOT NULL AUTO_INCREMENT,
     nombre_refugio VARCHAR(50) NOT NULL,
-    direccion VARCHAR(100)NOT NULL,
-    descripcion VARCHAR(200)DEFAULT NULL,
+    direccion VARCHAR(50)NOT NULL,
+    descripcion VARCHAR(50)DEFAULT NULL,
     tipo_refugio VARCHAR(50),
     telefono VARCHAR(20),
     link_foto VARCHAR(255) DEFAULT NULL,
