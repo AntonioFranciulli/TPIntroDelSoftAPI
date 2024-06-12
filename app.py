@@ -6,13 +6,14 @@ from sqlalchemy.exc import SQLAlchemyError
 from flask_cors import CORS
 import requests
 import json
+import aux
 
 app = Flask(__name__)
 CORS(app, resources={r'*': {'origins': 'http://127.0.0.1:5000'}})
 
 def set_connection():
 
-    engine = create_engine("mysql+mysqlconnector://root@localhost:3307/CalleSolidaria")
+    engine = create_engine("mysql+mysqlconnector://root@localhost/CalleSolidaria")
     connection = engine.connect()
     return connection
 
@@ -140,7 +141,6 @@ def mostrar_refugio(id):
         data.append(entity)
     return jsonify(data), 200
 
-
 @app.route('/crear_refugio', methods = ['POST'])
 def crearRefugio():
     conn= set_connection()
@@ -171,8 +171,15 @@ def crear_voluntario():
     ID_REFUGIO = 0 #Posiciones en la lista devuelta x la DB
     LISTA_VOLUNTARIOS = 7
 
+    seleccionar_refugio = text("""SELECT * FROM refugios WHERE nombre_refugio = :nombre_refugio;""") #Obtiene refugio con nombre especifico
+    insertar_voluntario = text("""INSERT INTO voluntarios(cuil_voluntario, puesto, telefono, nombre, id_refugio)
+    VALUES (:cuil_voluntario, :puesto, :telefono, :nombre, :id_refugio)
+    """) #Inserta el voluntario en la tabla VOLUNTARIOS    
+    update_refugio = text(""" UPDATE refugios SET lista_voluntarios = :lista_voluntarios
+                WHERE id_refugio = :id_refugio;
+    """) #Updatea la LISTA_VOLUNTARIOS de la lista de voluntarios
+
     try:
-        seleccionar_refugio = text("""SELECT * FROM refugios WHERE nombre_refugio = :nombre_refugio;""") #Obtiene refugio con nombre especifico
         refugio = conn.execute(seleccionar_refugio,{
             'nombre_refugio': volunteer["nombre_refugio"]
         }).fetchone() #Obtiene un refugio por nombre
@@ -180,9 +187,6 @@ def crear_voluntario():
         if not refugio:
             return jsonify({'message': 'No existe un refugio con ese nombre'}), 404
 
-        insertar_voluntario = text("""INSERT INTO voluntarios(cuil_voluntario, puesto, telefono, nombre, id_refugio)
-        VALUES (:cuil_voluntario, :puesto, :telefono, :nombre, :id_refugio)
-        """) #Inserta el voluntario en la tabla VOLUNTARIOS
         conn.execute(insertar_voluntario, {
         'cuil_voluntario': volunteer["cuil_voluntario"],
         'puesto': volunteer["puesto"],
@@ -200,9 +204,6 @@ def crear_voluntario():
 
         lista_voluntarios = json.dumps(lista_voluntarios) #Convierte [] => "[]"
         
-        update_refugio = text(""" UPDATE refugios SET lista_voluntarios = :lista_voluntarios
-                    WHERE id_refugio = :id_refugio;
-        """) #Updatea la LISTA_VOLUNTARIOS de la lista de voluntarios
 
         conn.execute(update_refugio,{'id_refugio': refugio[ID_REFUGIO],'lista_voluntarios': lista_voluntarios})
         conn.commit()
@@ -212,7 +213,6 @@ def crear_voluntario():
         return jsonify({'message': 'Se ha producido un error: ' + str(err)}), 500
     
     return jsonify({'message': 'Se ha agregado correctamente'}), 201
-
 
 #@app.route("/...") , methods=['GET']"""
 
@@ -236,24 +236,51 @@ def eliminar_refugio(id):
     return jsonify({'message': 'se ha eliminado correctamente' + query}), 200
 
 @app.route("/eliminar_voluntario/<cuil>", methods=['DELETE'])
-def eliminar_voluntario(cuil):
+def eliminar_voluntario(cuil: str):
+    if not cuil.isdigit(): return jsonify({ 'message': 'El cuil es invalido' })
+
     conn = set_connection()
-    query = f"DELETE FROM voluntarios WHERE cuil_voluntario = {cuil};"
-    validation_query = f"DELETE FROM voluntarios WHERE cuil_voluntario = {cuil}"
+
+    update_refugio = text(""" UPDATE refugios SET lista_voluntarios = :lista_voluntarios
+        WHERE id_refugio = :id_refugio;
+    """) #Updatea la LISTA_VOLUNTARIOS de la lista de voluntarios
+    seleccionar_voluntario = text(f"SELECT * FROM voluntarios WHERE cuil_voluntario = {cuil}") #Selecciona voluntario mediante cuil
+    seleccionar_refugio = text("""SELECT * FROM refugios WHERE id_refugio = :id_refugio;""") #Selecciona refugio mediante id
+    eliminar_voluntario = f"DELETE FROM voluntarios WHERE cuil_voluntario = {cuil};" #Elimina voluntario por cuil
+    POSICION_ID_REFUGIO = 4 
+    POSICION_LISTA_VOLUNTARIOS = 7
+
     try:
-        result = conn.execute(text(validation_query))
+        voluntario = conn.execute(seleccionar_voluntario).fetchone() #busco voluntario
+        if not voluntario:
+            return jsonify({'message' : 'cuil inexistente'})
+        
+        refugio = conn.execute(seleccionar_refugio, { 'id_refugio': voluntario[POSICION_ID_REFUGIO]}).fetchone() #busco refugio
+        
+        if not refugio:
+            return jsonify({'message' : 'Ese voluntario no esta inscripto en ningun refugio valido'})
+        
+        lista_vol = json.loads(refugio[POSICION_LISTA_VOLUNTARIOS])
+        lista_vol_actualizada = aux.eliminar_voluntario(lista_vol, int(cuil)) #Elimino voluntario de lista voluntario
+
+        conn.execute(update_refugio,{'id_refugio': voluntario[POSICION_ID_REFUGIO],'lista_voluntarios': lista_vol_actualizada}) #Update lista_vol en refugio
+        conn.commit()
+
+        #Ahora se elimina el voluntario de la TABLA DE VOLUNTARIOS
+        result = conn.execute(text(eliminar_voluntario))
         if result.rowcount != 0:
-            conn.execute(text(query))
+            conn.execute(text(eliminar_voluntario))
             # el commit no se si es necesario, depende de como trabajemos sobre la base de datos
             # en pythonanywhere tiene autocommit asi que si lo usas te tira error 500
             conn.commit()
             conn.close()
-            return jsonify({'message' : 'voluntario eliminado exitosamente'})
+            return jsonify({'message' : 'Voluntario eliminado exitosamente'})
         else:
             conn.close()
-            return jsonify({'message' : 'cuil inexistente'})
+            return jsonify({'message' : 'Cuil inexistente'})
     except SQLAlchemyError as err:
             return jsonify({'message' : 'Se ha producido un error' + str(err.__cause__)})
+    
 #acá probé que los refugios se eliminen en base al id luego de hacer el get refugios, no sé cómo vamos a implementar el tema del token para que solamente los que crearon los refugios puedan modificarlo
 @app.route('/refugios/<id>',methods = ['PATCH'])
 def modificar_usuario(id):
