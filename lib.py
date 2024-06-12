@@ -1,6 +1,8 @@
 import json
 
-def eliminar_voluntario(lista_voluntarios, cuil):
+# Library of auxiliary functions used throught the API.
+
+def aux_eliminar_voluntario(lista_voluntarios, cuil):
   '''
     Recibe una lista en formato str
     Elimina el cuil dado

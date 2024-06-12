@@ -6,7 +6,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from flask_cors import CORS
 import requests
 import json
-import aux
+import lib
 
 app = Flask(__name__)
 CORS(app, resources={r'*': {'origins': 'http://127.0.0.1:5000'}})
@@ -302,7 +302,7 @@ def eliminar_voluntario(cuil: str):
             return jsonify({'message' : 'Ese voluntario no esta inscripto en ningun refugio valido'})
         
         lista_vol = json.loads(refugio[POSICION_LISTA_VOLUNTARIOS])
-        lista_vol_actualizada = aux.eliminar_voluntario(lista_vol, int(cuil)) #Elimino voluntario de lista voluntario
+        lista_vol_actualizada = lib.aux_eliminar_voluntario(lista_vol, int(cuil)) #Elimino voluntario de lista voluntario
 
         conn.execute(update_refugio,{'id_refugio': voluntario[POSICION_ID_REFUGIO],'lista_voluntarios': lista_vol_actualizada}) #Update lista_vol en refugio
         conn.commit()
