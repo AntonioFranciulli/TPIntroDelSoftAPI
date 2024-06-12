@@ -121,25 +121,38 @@ def mostrar_refugios():
 @app.route("/obtener_refugio/<id>", methods=['GET'])
 def mostrar_refugio(id):
     conn = set_connection()
-    query = f"SELECT * FROM refugios WHERE id_refugio={id};"
+
+    POSICION_LISTA_VOL = 7
+
+    seleccionar_refugio = f"SELECT * FROM refugios WHERE id_refugio={id};"
     try:
-        result = conn.execute(text(query))
+        refugio = conn.execute(text(seleccionar_refugio)).fetchone()
+        print(refugio)
+        if not refugio:
+            return jsonify({ 'message': 'No se encontro un refugio con ese id' })
+        
+        cuils_voluntarios = json.loads(refugio[POSICION_LISTA_VOL])
+        seleccionar_voluntarios = f"SELECT * FROM voluntarios WHERE cuil_voluntario IN {tuple(cuils_voluntarios)}" 
+        lista_voluntarios = conn.execute(text(seleccionar_voluntarios)).fetchall()
         conn.close()
     except SQLAlchemyError as err:
         return jsonify({'message' : 'Se ha producido un error' + str(err.__cause__)}), 500
-    data = []
-    for row in result:
-        entity={}
-        entity['id']=row.id_refugio
-        entity['nombre']=row.nombre_refugio
-        entity['descripcion']=row.descripcion
-        entity['direccion']=row.direccion
-        entity['telefono']=row.telefono
-        entity['tipo']=row.tipo_refugio
-        entity['foto']=row.link_foto
-        entity['voluntarios']=row.lista_voluntarios
-        data.append(entity)
-    return jsonify(data), 200
+    
+    voluntarios = []
+    for vol in lista_voluntarios:
+        voluntarios.append(tuple(vol))
+
+    data = {
+        'id_refugio': refugio[0],
+        'nombre_refugio': refugio[1],
+        'direccion': refugio[2],
+        'descripcion': refugio[3],
+        'tipo_refugio': refugio[4],
+        'telefono': refugio[5],
+        'link_foto': refugio[6],
+        # 'lista_voluntarios': voluntarios
+    }
+    return jsonify({ 'data_refugio': data, 'voluntarios': voluntarios}), 200
 
 @app.route('/crear_refugio', methods = ['POST'])
 def crearRefugio():
@@ -172,9 +185,11 @@ def crear_voluntario():
     LISTA_VOLUNTARIOS = 7
 
     seleccionar_refugio = text("""SELECT * FROM refugios WHERE nombre_refugio = :nombre_refugio;""") #Obtiene refugio con nombre especifico
+
     insertar_voluntario = text("""INSERT INTO voluntarios(cuil_voluntario, puesto, telefono, nombre, id_refugio)
     VALUES (:cuil_voluntario, :puesto, :telefono, :nombre, :id_refugio)
     """) #Inserta el voluntario en la tabla VOLUNTARIOS    
+
     update_refugio = text(""" UPDATE refugios SET lista_voluntarios = :lista_voluntarios
                 WHERE id_refugio = :id_refugio;
     """) #Updatea la LISTA_VOLUNTARIOS de la lista de voluntarios
@@ -192,7 +207,7 @@ def crear_voluntario():
         'puesto': volunteer["puesto"],
         'telefono': volunteer["telefono"],
         'nombre': volunteer["nombre"],
-        'id_refugio': refugio[ID_REFUGIO] 
+        'id_refugio': refugio[ID_REFUGIO]
         }) #Los datos son los que se obtuvieron desde el body exceto el id que se obtuvo desde el refugio
         conn.commit() 
 
@@ -214,7 +229,26 @@ def crear_voluntario():
     
     return jsonify({'message': 'Se ha agregado correctamente'}), 201
 
-#@app.route("/...") , methods=['GET']"""
+@app.route("/obtener_voluntario/<cuil>", methods=['GET'])
+def obtener_voluntario(cuil: str):
+    if not cuil.isdigit():
+        return jsonify({ 'message': 'El cuil no es valido' }), 500
+
+    conn = set_connection()
+
+    seleccionar_voluntario = f"SELECT * FROM voluntarios WHERE cuil_voluntario = {cuil};"
+
+    try:
+        voluntario = conn.execute(text(seleccionar_voluntario)).fetchone() #Obtiene un refugio por nombre
+        print(voluntario)
+        if not voluntario:
+            return jsonify({'message': 'No existe un voluntario con ese cuil'}), 404
+
+        return jsonify({ 'data': tuple(voluntario) }), 200
+        
+    except SQLAlchemyError as err:
+        print("error",err._cause_)
+        return jsonify({'message': 'Se ha producido un error: ' + str(err)}), 500
 
 @app.route("/eliminar_refugio/<id>", methods=['DELETE'])
 def eliminar_refugio(id):
