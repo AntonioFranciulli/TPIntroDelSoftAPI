@@ -127,18 +127,25 @@ def mostrar_refugio(id):
     seleccionar_refugio = f"SELECT * FROM refugios WHERE id_refugio={id};"
     try:
         refugio = conn.execute(text(seleccionar_refugio)).fetchone()
-        print(refugio)
         if not refugio:
             return jsonify({ 'message': 'No se encontro un refugio con ese id' })
         
-        cuils_voluntarios = json.loads(refugio[POSICION_LISTA_VOL])
-        seleccionar_voluntarios = f"SELECT * FROM voluntarios WHERE cuil_voluntario IN {tuple(cuils_voluntarios)}" 
-        lista_voluntarios = conn.execute(text(seleccionar_voluntarios)).fetchall()
+        if not refugio[POSICION_LISTA_VOL]: #Si no hay voluntarios crea listas vacias
+            cuils_voluntarios = []
+            lista_voluntarios = []
+        else: #Si hay voluntarios lo convierte a lista
+            cuils_voluntarios = json.loads(refugio[POSICION_LISTA_VOL])
+        if len(cuils_voluntarios) == 1: # SEsto es cuando hay un voluntario
+            seleccionar_voluntarios = f"SELECT * FROM voluntarios WHERE cuil_voluntario = {cuils_voluntarios[0]}"
+            lista_voluntarios = conn.execute(text(seleccionar_voluntarios)).fetchall()
+        elif len(cuils_voluntarios) > 1: #Esto cuando hay muchos voluntarios
+            seleccionar_voluntarios = f"SELECT * FROM voluntarios WHERE cuil_voluntario IN {tuple(cuils_voluntarios)}" 
+            lista_voluntarios = conn.execute(text(seleccionar_voluntarios)).fetchall()
         conn.close()
     except SQLAlchemyError as err:
         return jsonify({'message' : 'Se ha producido un error' + str(err.__cause__)}), 500
     
-    voluntarios = []
+    voluntarios = [] #oluntarios datos completos
     for vol in lista_voluntarios:
         voluntarios.append(tuple(vol))
 
