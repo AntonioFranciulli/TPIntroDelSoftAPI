@@ -357,12 +357,10 @@ def modificar_voluntario(cuil):
     conn = set_connection()
     mod_vol = request.get_json()
     # Los datos se tienen que mandar por el body del request
-    #No estoy seguro que sea buena práctica poder modificar el cuil si lo usamos como PK. Por las dudas lo dejo por ahora
+    #En este momento el voluntario no puede modificar su CUIL.
     query = f"""UPDATE voluntarios SET nombre = '{mod_vol['nombre']}',
                 puesto = '{mod_vol['puesto']}',
-                cuil_voluntario = '{mod_vol['cuil_voluntario']}',
                 telefono = '{mod_vol['telefono']}',
-                id_refugio = '{mod_vol['id_refugio']}'
                 WHERE cuil_voluntario = {cuil};
             """
     query_validation = f"SELECT * FROM voluntarios WHERE cuil_voluntario = {cuil};"
