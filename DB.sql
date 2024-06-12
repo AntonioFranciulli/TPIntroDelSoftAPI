@@ -2,11 +2,12 @@ CREATE TABLE refugios (
     id_refugio INT NOT NULL AUTO_INCREMENT,
     nombre_refugio VARCHAR(50) NOT NULL,
     direccion VARCHAR(50)NOT NULL,
-    descripcion VARCHAR(50)DEFAULT NULL,
+    descripcion VARCHAR(200)DEFAULT NULL,
     tipo_refugio VARCHAR(50),
     telefono VARCHAR(20),
     link_foto VARCHAR(255) DEFAULT NULL,
     lista_voluntarios VARCHAR(2000)DEFAULT NULL,
+    token VARCHAR(20) NOT NULL,
     PRIMARY KEY(ID_refugio)
 );
 
@@ -16,6 +17,8 @@ puesto VARCHAR(50)NOT NULL,
 telefono VARCHAR(50)NOT NULL,
 nombre VARCHAR(50)NOT NULL,
 id_refugio INT NOT NULL,
+link_foto VARCHAR(255) DEFAULT NULL,
+token VARCHAR(20) NOT NULL,
 PRIMARY KEY (cuil_voluntario),
 FOREIGN KEY (id_refugio) REFERENCES refugios(id_refugio)
 );
