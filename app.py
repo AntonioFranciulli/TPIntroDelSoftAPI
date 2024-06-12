@@ -12,7 +12,7 @@ CORS(app, resources={r'*': {'origins': 'http://127.0.0.1:5000'}})
 
 def set_connection():
 
-    engine = create_engine("mysql+mysqlconnector://root@localhost/CalleSolidaria")
+    engine = create_engine("mysql+mysqlconnector://root@localhost:3307/CalleSolidaria")
     connection = engine.connect()
     return connection
 
@@ -165,44 +165,46 @@ def crearRefugio():
 
 @app.route("/crear_voluntario", methods=['POST'])
 def crear_voluntario():
-
     conn = set_connection() #Set connection to db
     volunteer = request.get_json() #Diccionario body
 
-    query = text("""INSERT INTO voluntarios(cuil_voluntario, puesto, telefono, nombre, id_refugio)
-    VALUES (:cuil_voluntario, :puesto, :telefono, :nombre, :id_refugio)
-    """) 
+    ID_REFUGIO = 0 #Posiciones en la lista devuelta x la DB
+    LISTA_VOLUNTARIOS = 7
+
     try:
-        conn.execute(query, {
+        seleccionar_refugio = text("""SELECT * FROM refugios WHERE nombre_refugio = :nombre_refugio;""") #Obtiene refugio con nombre especifico
+        refugio = conn.execute(seleccionar_refugio,{
+            'nombre_refugio': volunteer["nombre_refugio"]
+        }).fetchone() #Obtiene un refugio por nombre
+
+        if not refugio:
+            return jsonify({'message': 'No existe un refugio con ese nombre'}), 404
+
+        insertar_voluntario = text("""INSERT INTO voluntarios(cuil_voluntario, puesto, telefono, nombre, id_refugio)
+        VALUES (:cuil_voluntario, :puesto, :telefono, :nombre, :id_refugio)
+        """) #Inserta el voluntario en la tabla VOLUNTARIOS
+        conn.execute(insertar_voluntario, {
         'cuil_voluntario': volunteer["cuil_voluntario"],
         'puesto': volunteer["puesto"],
         'telefono': volunteer["telefono"],
         'nombre': volunteer["nombre"],
-        'id_refugio': volunteer["id_refugio"]   
-        })
-        conn.commit() #Agregag voluntario a tabla voluntarios
+        'id_refugio': refugio[ID_REFUGIO] 
+        }) #Los datos son los que se obtuvieron desde el body exceto el id que se obtuvo desde el refugio
+        conn.commit() 
 
-        query2 = text("""SELECT * FROM refugios WHERE id_refugio = :id_refugio;""") #Obtiene refugio con nombre especifico
-
-
-        refugio = conn.execute(query2,{
-            'id_refugio': volunteer["id_refugio"]
-        }).fetchone()
-
-        if refugio[7] == None:
+        if refugio[7] == None: #Si no habia un voluntario antes se crea una lista
             lista_voluntarios = [volunteer["cuil_voluntario"]]
-        else:
-            lista_voluntarios = json.loads(refugio[7]) #Convierte "[]" => []
+        else: 
+            lista_voluntarios = json.loads(refugio[LISTA_VOLUNTARIOS]) #Convierte "[]" => []
             lista_voluntarios.append(volunteer["cuil_voluntario"])
 
         lista_voluntarios = json.dumps(lista_voluntarios) #Convierte [] => "[]"
         
-
-        query3 = text(""" UPDATE refugios SET lista_voluntarios = :lista_voluntarios
+        update_refugio = text(""" UPDATE refugios SET lista_voluntarios = :lista_voluntarios
                     WHERE id_refugio = :id_refugio;
-        """) #Update de la lista de voluntarios
+        """) #Updatea la LISTA_VOLUNTARIOS de la lista de voluntarios
 
-        conn.execute(query3,{'id_refugio': volunteer["id_refugio"],'lista_voluntarios': lista_voluntarios})
+        conn.execute(update_refugio,{'id_refugio': refugio[ID_REFUGIO],'lista_voluntarios': lista_voluntarios})
         conn.commit()
 
     except SQLAlchemyError as err:
