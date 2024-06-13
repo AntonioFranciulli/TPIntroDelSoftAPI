@@ -12,8 +12,7 @@ app = Flask(__name__)
 CORS(app, resources={r'*': {'origins': 'http://127.0.0.1:5000'}})
 
 def set_connection():
-
-    engine = create_engine("mysql+mysqlconnector://root@localhost/CalleSolidaria")
+    engine = create_engine("mysql+mysqlconnector://root@localhost:3307/CalleSolidaria")
     connection = engine.connect()
     return connection
 
@@ -145,9 +144,9 @@ def mostrar_refugio(id):
     except SQLAlchemyError as err:
         return jsonify({'message' : 'Se ha producido un error' + str(err.__cause__)}), 500
     
-    voluntarios = [] #oluntarios datos completos
+    voluntarios = [] #Voluntarios datos completos
     for vol in lista_voluntarios:
-        voluntarios.append(tuple(vol))
+        voluntarios.append(tuple(vol[:5])) #Excluye el token
 
     data = {
         'id_refugio': refugio[0],
@@ -240,18 +239,29 @@ def crear_voluntario():
 def obtener_voluntario(cuil: str):
     if not cuil.isdigit():
         return jsonify({ 'message': 'El cuil no es valido' }), 500
-
+    POSICION_ID_REFUGIO = 4
     conn = set_connection()
 
     seleccionar_voluntario = f"SELECT * FROM voluntarios WHERE cuil_voluntario = {cuil};"
+    seleccionar_refugio = f"SELECT nombre_refugio FROM refugios WHERE id_refugio = :id_refugio;"
 
     try:
         voluntario = conn.execute(text(seleccionar_voluntario)).fetchone() #Obtiene un refugio por nombre
-        print(voluntario)
         if not voluntario:
             return jsonify({'message': 'No existe un voluntario con ese cuil'}), 404
+        
+        refugio = conn.execute(text(seleccionar_refugio), { 'id_refugio': voluntario[POSICION_ID_REFUGIO] }).fetchone()
+        
+        datos = {
+        'cuil_voluntario': cuil,
+        'puesto': voluntario[1],
+        'telefono': voluntario[2],
+        'nombre': voluntario[3],
+        'id_refugio': voluntario[4],
+        'nombre_refugio': refugio[0]
+        }
 
-        return jsonify({ 'data': tuple(voluntario) }), 200
+        return jsonify({ 'data': datos }), 200 #Excluyo el token
         
     except SQLAlchemyError as err:
         print("error",err._cause_)
@@ -356,23 +366,29 @@ def modificar_usuario(id):
 def modificar_voluntario(cuil):
     conn = set_connection()
     mod_vol = request.get_json()
+    print(mod_vol)
+    query_id_refugio = 'SELECT id_refugio FROM refugios WHERE nombre_refugio = :nombre_refugio'
+    id_refugio = conn.execute(text(query_id_refugio), { 'nombre_refugio': mod_vol['nombre_refugio'] }).fetchone()
     # Los datos se tienen que mandar por el body del request
-    #En este momento el voluntario no puede modificar su CUIL.
-    query = f"""UPDATE voluntarios SET nombre = '{mod_vol['nombre']}',
+    #No estoy seguro que sea buena práctica poder modificar el cuil si lo usamos como PK. Por las dudas lo dejo por ahora
+    editar_voluntario = f"""UPDATE voluntarios SET 
+                nombre = '{mod_vol['nombre']}',
                 puesto = '{mod_vol['puesto']}',
                 telefono = '{mod_vol['telefono']}',
-                WHERE cuil_voluntario = {cuil};
-            """
-    query_validation = f"SELECT * FROM voluntarios WHERE cuil_voluntario = {cuil};"
+                id_refugio = '{id_refugio[0]}',
+                link_foto = '{mod_vol['foto']}' WHERE cuil_voluntario = :cuil AND token=:token"""
+    
+
+    query_validation = f"SELECT * FROM voluntarios WHERE cuil_voluntario = :cuil AND token=:token"
     try:
-        val_result = conn.execute(text(query_validation))
+        val_result = conn.execute(text(query_validation), { 'token': mod_vol['token'], 'cuil': mod_vol['cuil_voluntario'] })
         if val_result.rowcount != 0:
-            conn.execute(text(query))
+            conn.execute(text(editar_voluntario), { 'token': mod_vol['token'], 'cuil': mod_vol['cuil_voluntario'] })
             conn.commit()
             conn.close()
         else:
             conn.close()
             return jsonify({'message': "El voluntario no existe"}), 404
     except SQLAlchemyError as err:
-        return jsonify({'message': str(err.__cause__)})
-    return jsonify({'message': 'se ha modificado correctamente' + query}), 200
+        return jsonify({'message': str(err.__cause__)}), 500
+    return jsonify({'message': 'Se ha modificado correctamente'}), 200
