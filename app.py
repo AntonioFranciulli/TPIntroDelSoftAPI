@@ -122,7 +122,7 @@ def mostrar_refugio(id):
     conn = set_connection()
 
     POSICION_LISTA_VOL = 7
-
+    lista_voluntarios = []
     seleccionar_refugio = f"SELECT * FROM refugios WHERE id_refugio={id};"
     try:
         refugio = conn.execute(text(seleccionar_refugio)).fetchone()
@@ -272,22 +272,26 @@ def obtener_voluntario(cuil: str):
 
 @app.route("/eliminar_refugio/<id>", methods=['DELETE'])
 def eliminar_refugio(id):
-    conn = set_connection()
-    query = f"DELETE FROM refugios WHERE id_refugio = {id};"
-    query_validation = f"SELECT * FROM refugios WHERE id_refugio = {id};"
+    conn = set_connection()  
+    query = "DELETE FROM refugios WHERE id_refugio = :id;"
+    query_validation = "SELECT * FROM refugios WHERE id_refugio = :id;"
     try:
-        val_result = conn.execute(text(query_validation))
-        if val_result.rowcount != 0:
-            conn.execute(text(query))
+        val_result = conn.execute(text(query_validation), {"id": id})
+        if val_result.rowcount!= 0:
+            conn.execute(text(query), {"id": id})
             conn.commit()
             conn.close()
-            return jsonify({'message' : 'Refugio eliminado exitosamente'})
+            return jsonify({'message': 'Refugio eliminado exitosamente'})
         else:
             conn.close()
-            return jsonify({'message' : 'id inexistente'}),404
+            return jsonify({'message': 'id inexistente'}), 404
     except SQLAlchemyError as err:
-        jsonify({'message' : 'Se ha producido un error' + str(err.__cause__)})
-    return jsonify({'message': 'se ha eliminado correctamente' + query}), 200
+        conn.close()
+        return jsonify({'message': 'Se ha producido un error: ' + str(err)}), 500
+    finally:
+        conn.close()
+
+    return jsonify({'message': 'se ha eliminado correctamente'}), 200
 
 @app.route("/eliminar_voluntario/<cuil>", methods=['DELETE'])
 def eliminar_voluntario(cuil: str):
