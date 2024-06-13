@@ -12,7 +12,7 @@ app = Flask(__name__)
 CORS(app, resources={r'*': {'origins': 'http://127.0.0.1:5000'}})
 
 def set_connection():
-    engine = create_engine("mysql+mysqlconnector://root@localhost:3307/CalleSolidaria")
+    engine = create_engine("mysql+mysqlconnector://root@localhost/CalleSolidaria")
     connection = engine.connect()
     return connection
 
@@ -192,8 +192,8 @@ def crear_voluntario():
 
     seleccionar_refugio = text("""SELECT * FROM refugios WHERE nombre_refugio = :nombre_refugio;""") #Obtiene refugio con nombre especifico
 
-    insertar_voluntario = text("""INSERT INTO voluntarios(cuil_voluntario, puesto, telefono, nombre, id_refugio)
-    VALUES (:cuil_voluntario, :puesto, :telefono, :nombre, :id_refugio)
+    insertar_voluntario = text("""INSERT INTO voluntarios(cuil_voluntario, puesto, telefono, nombre, id_refugio, link_foto)
+    VALUES (:cuil_voluntario, :puesto, :telefono, :nombre, :id_refugio, :link_foto)
     """) #Inserta el voluntario en la tabla VOLUNTARIOS    
 
     update_refugio = text(""" UPDATE refugios SET lista_voluntarios = :lista_voluntarios
@@ -213,7 +213,8 @@ def crear_voluntario():
         'puesto': volunteer["puesto"],
         'telefono': volunteer["telefono"],
         'nombre': volunteer["nombre"],
-        'id_refugio': refugio[ID_REFUGIO]
+        'id_refugio': refugio[ID_REFUGIO],
+        'link_foto': volunteer["link_foto"]
         }) #Los datos son los que se obtuvieron desde el body exceto el id que se obtuvo desde el refugio
         conn.commit() 
 
@@ -247,6 +248,7 @@ def obtener_voluntario(cuil: str):
 
     try:
         voluntario = conn.execute(text(seleccionar_voluntario)).fetchone() #Obtiene un refugio por nombre
+        print(voluntario)
         if not voluntario:
             return jsonify({'message': 'No existe un voluntario con ese cuil'}), 404
         
@@ -258,7 +260,8 @@ def obtener_voluntario(cuil: str):
         'telefono': voluntario[2],
         'nombre': voluntario[3],
         'id_refugio': voluntario[4],
-        'nombre_refugio': refugio[0]
+        'nombre_refugio': refugio[0],
+        'link_foto':voluntario[5]
         }
 
         return jsonify({ 'data': datos }), 200 #Excluyo el token
