@@ -28,9 +28,9 @@ SET time_zone = "+00:00";
 --
 
 CREATE TABLE `refugios` (
-  `id_refugio` int(11) NOT NULL,
-  `nombre_refugio` varchar(50) DEFAULT NULL,
-  `direccion` varchar(50) DEFAULT NULL,
+  `id_refugio` int(11) NOT NULL AUTO_INCREMENT,
+  `nombre_refugio` varchar(50) NOT NULL,
+  `direccion` varchar(50) NOT NULL,
   `descripcion` varchar(50) DEFAULT NULL,
   `tipo_refugio` varchar(50) DEFAULT NULL,
   `telefono` varchar(20) DEFAULT NULL,
@@ -51,11 +51,11 @@ INSERT INTO `refugios` (`id_refugio`, `nombre_refugio`, `direccion`, `descripcio
 --
 
 CREATE TABLE `voluntarios` (
-  `cuil_voluntario` int(11) NOT NULL,
-  `puesto` varchar(50) DEFAULT NULL,
-  `telefono` varchar(50) DEFAULT NULL,
-  `nombre` varchar(50) DEFAULT NULL,
-  `id_refugio` int(11) DEFAULT NULL
+  `cuil_voluntario` int(11) NOT NULL, 
+  `puesto` varchar(50) NOT NULL,
+  `telefono` varchar(50) NOT NULL,
+  `nombre` varchar(50) NOT NULL,
+  `id_refugio` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
